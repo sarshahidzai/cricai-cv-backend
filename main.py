@@ -34,7 +34,14 @@ def health():
 
 
 def extract_pose_data(video_path, analysis_type="bowling"):
+    import cv2
+    import mediapipe as mp
+
+    mp_pose = mp.solutions.pose
     cap = cv2.VideoCapture(video_path)
+
+    print("DEBUG: Opening video:", video_path)
+    print("DEBUG: IsOpened:", cap.isOpened())
 
     if not cap.isOpened():
         return {
@@ -43,9 +50,9 @@ def extract_pose_data(video_path, analysis_type="bowling"):
             "frame_count": 0,
             "pose_confidence": 0.0,
             "visual_overlay": {},
-            "light_mode_warning": "Could not open video",
+            "light_mode_warning": "VIDEO_NOT_SUPPORTED",
             "analysis": {
-                "summary": "Could not open video file",
+                "summary": "Video could not be opened (unsupported format or codec)",
                 "confidence": 0.0,
                 "status": "error"
             }
@@ -66,6 +73,8 @@ def extract_pose_data(video_path, analysis_type="bowling"):
 
         while True:
             ret, frame = cap.read()
+            print("DEBUG: Frame read:", ret)
+
             if not ret:
                 break
 
@@ -102,8 +111,6 @@ def extract_pose_data(video_path, analysis_type="bowling"):
 
     avg_confidence = sum(confidence_scores) / len(confidence_scores) if confidence_scores else 0.0
 
-    status = "complete" if frames_with_pose > 0 else "no_pose_detected"
-
     return {
         "pose_data": pose_data,
         "frames_with_pose": frames_with_pose,
@@ -117,7 +124,7 @@ def extract_pose_data(video_path, analysis_type="bowling"):
         "analysis": {
             "summary": "CV analysis completed" if frames_with_pose > 0 else "No pose detected in video",
             "confidence": avg_confidence,
-            "status": status
+            "status": "complete" if frames_with_pose > 0 else "no_pose_detected"
         }
     }
 
