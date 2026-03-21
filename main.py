@@ -26,6 +26,8 @@ def health():
 
 @app.post("/analyze")
 async def analyze(file: UploadFile = File(...), analysis_type: str = Form("bowling")):
+    temp_video_path = None
+
     try:
         import tempfile
         import os
@@ -43,6 +45,12 @@ async def analyze(file: UploadFile = File(...), analysis_type: str = Form("bowli
         frames_with_pose = extracted.get("frames_with_pose", 0)
         frame_count = extracted.get("frame_count", len(pose_data))
         pose_confidence = extracted.get("pose_confidence", 0.0)
+        visual_overlay = extracted.get("visual_overlay", {})
+        light_mode_warning = extracted.get("light_mode_warning", None)
+
+        detection_ratio = 0.0
+        if frame_count > 0:
+            detection_ratio = frames_with_pose / frame_count
 
         return {
             "success": True,
@@ -54,10 +62,13 @@ async def analyze(file: UploadFile = File(...), analysis_type: str = Form("bowli
             "frames_with_pose": frames_with_pose,
             "pose_data": pose_data,
             "pose_confidence": pose_confidence,
+            "detection_ratio": detection_ratio,
+            "visual_overlay": visual_overlay,
+            "light_mode_warning": light_mode_warning,
             "analysis": extracted.get("analysis", {
                 "summary": "CV analysis completed",
                 "confidence": pose_confidence,
-                "status": "complete"
+                "status": "complete" if frames_with_pose > 0 else "no_pose_detected"
             })
         }
 
@@ -70,9 +81,21 @@ async def analyze(file: UploadFile = File(...), analysis_type: str = Form("bowli
             "frames_with_pose": 0,
             "pose_data": [],
             "pose_confidence": 0.0,
+            "detection_ratio": 0.0,
+            "visual_overlay": {},
+            "light_mode_warning": None,
             "analysis": {
                 "summary": f"Analysis failed: {str(e)}",
                 "confidence": 0.0,
                 "status": "error"
             }
         }
+
+    finally:
+        try:
+            if temp_video_path:
+                import os
+                if os.path.exists(temp_video_path):
+                    os.remove(temp_video_path)
+        except:
+            pass
