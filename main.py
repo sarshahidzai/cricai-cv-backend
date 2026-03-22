@@ -129,73 +129,69 @@ def extract_pose_data(video_path, analysis_type="bowling"):
     }
 
 
-@app.post("/analyze")
-async def analyze(file: UploadFile = File(...), analysis_type: str = Form("bowling")):
-    temp_video_path = None
+@app.post("/analyze-url")
+async def analyze_url(req: AnalyzeURLRequest):
+    input_path = None
+    output_path = None
 
     try:
-        suffix = os.path.splitext(file.filename or "video.mp4")[1] or ".mp4"
+        print("DEBUG: analyze-url called")
+        print("DEBUG: video_url =", req.video_url)
 
-        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-            video_bytes = await file.read()
-            tmp.write(video_bytes)
-            temp_video_path = tmp.name
+        r = requests.get(req.video_url, timeout=60)
+        r.raise_for_status()
 
-        extracted = extract_pose_data(temp_video_path, analysis_type)
+        ext = req.video_url.split(".")[-1].split("?")[0].lower() or "mp4"
+
+        with tempfile.NamedTemporaryFile(suffix=f".{ext}", delete=False) as tmp:
+            tmp.write(r.content)
+            input_path = tmp.name
+
+        output_path = input_path.rsplit(".", 1)[0] + "_converted.mp4"
+
+        subprocess.run([
+            "ffmpeg", "-y", "-i", input_path,
+            "-vcodec", "libx264",
+            "-acodec", "aac",
+            "-preset", "fast",
+            output_path
+        ], check=True)
+
+        extracted = extract_pose_data(output_path, req.analysis_type)
 
         pose_data = extracted.get("pose_data", [])
         frames_with_pose = extracted.get("frames_with_pose", 0)
         frame_count = extracted.get("frame_count", len(pose_data))
         pose_confidence = extracted.get("pose_confidence", 0.0)
-        visual_overlay = extracted.get("visual_overlay", {})
-        light_mode_warning = extracted.get("light_mode_warning", None)
 
-        detection_ratio = 0.0
-        if frame_count > 0:
-            detection_ratio = frames_with_pose / frame_count
+        detection_ratio = frames_with_pose / frame_count if frame_count > 0 else 0.0
 
         return {
             "success": True,
-            "filename": file.filename,
-            "content_type": file.content_type,
-            "message": "Video analyzed successfully",
             "analysis_mode": "full-pose-detection",
             "frame_count": frame_count,
             "frames_with_pose": frames_with_pose,
             "pose_data": pose_data,
             "pose_confidence": pose_confidence,
             "detection_ratio": detection_ratio,
-            "visual_overlay": visual_overlay,
-            "light_mode_warning": light_mode_warning,
-            "analysis": extracted.get("analysis", {
-                "summary": "CV analysis completed",
-                "confidence": pose_confidence,
-                "status": "complete" if frames_with_pose > 0 else "no_pose_detected"
-            })
+            "analysis": extracted.get("analysis", {})
         }
 
     except Exception as e:
         return {
             "success": False,
-            "message": f"Analysis failed: {str(e)}",
-            "analysis_mode": "full-pose-detection",
-            "frame_count": 0,
-            "frames_with_pose": 0,
-            "pose_data": [],
-            "pose_confidence": 0.0,
-            "detection_ratio": 0.0,
-            "visual_overlay": {},
-            "light_mode_warning": None,
-            "analysis": {
-                "summary": f"Analysis failed: {str(e)}",
-                "confidence": 0.0,
-                "status": "error"
-            }
+            "message": str(e)
         }
 
     finally:
         try:
-            if temp_video_path and os.path.exists(temp_video_path):
-                os.remove(temp_video_path)
+            if input_path and os.path.exists(input_path):
+                os.remove(input_path)
+        except:
+            pass
+
+        try:
+            if output_path and os.path.exists(output_path):
+                os.remove(output_path)
         except:
             pass
