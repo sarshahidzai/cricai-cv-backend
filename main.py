@@ -15,7 +15,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-mp_pose = mp.solutions.pose
+from mediapipe import solutions as mp_solutions
+mp_pose = mp_solutions.pose
 
 
 @app.get("/")
