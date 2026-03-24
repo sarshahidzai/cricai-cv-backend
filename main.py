@@ -6,7 +6,7 @@ import os
 
 import cv2
 import requests
-from mediapipe.python.solutions import pose as mp_pose
+import mediapipe as mp
 
 app = FastAPI(title="CRICAI CV Backend", version="5.0.0")
 
@@ -18,7 +18,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize MediaPipe Pose once
+# MediaPipe Pose setup
+mp_pose = mp.solutions.pose
 pose = mp_pose.Pose(
     static_image_mode=False,
     model_complexity=1,
