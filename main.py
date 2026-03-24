@@ -82,10 +82,7 @@ def run_analysis(video_path, analysis_type):
 
 @app.post("/analyze")
 async def analyze(file: UploadFile = File(...), analysis_type: str = Form("batting")):
-<<<<<<< HEAD
     temp_path = None
-=======
->>>>>>> 9fc61b0460b3d7e348d1509943c484a8c422a86f
     try:
         suffix = ".mp4"
 
@@ -95,28 +92,19 @@ async def analyze(file: UploadFile = File(...), analysis_type: str = Form("batti
             temp_path = tmp.name
 
         result = run_analysis(temp_path, analysis_type)
-<<<<<<< HEAD
-=======
-        os.remove(temp_path)
-
->>>>>>> 9fc61b0460b3d7e348d1509943c484a8c422a86f
         return result
 
     except Exception as e:
         return {"success": False, "message": str(e)}
 
-<<<<<<< HEAD
     finally:
         if temp_path and os.path.exists(temp_path):
             os.remove(temp_path)
 
+
 @app.post("/analyze-url")
 async def analyze_url(body: AnalyzeUrlRequest):
     temp_path = None
-=======
-@app.post("/analyze-url")
-async def analyze_url(body: AnalyzeUrlRequest):
->>>>>>> 9fc61b0460b3d7e348d1509943c484a8c422a86f
     try:
         r = requests.get(body.video_url, timeout=60)
         r.raise_for_status()
@@ -126,19 +114,11 @@ async def analyze_url(body: AnalyzeUrlRequest):
             temp_path = tmp.name
 
         result = run_analysis(temp_path, body.analysis_type)
-<<<<<<< HEAD
-=======
-        os.remove(temp_path)
-
->>>>>>> 9fc61b0460b3d7e348d1509943c484a8c422a86f
         return result
 
     except Exception as e:
         return {"success": False, "message": str(e)}
-<<<<<<< HEAD
 
     finally:
         if temp_path and os.path.exists(temp_path):
             os.remove(temp_path)
-=======
->>>>>>> 9fc61b0460b3d7e348d1509943c484a8c422a86f
