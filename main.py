@@ -18,7 +18,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-mp_pose = mp.solutions.pose
+from mediapipe.python.solutions import pose as mp_pose
 pose = mp_pose.Pose(static_image_mode=False)
 
 class AnalyzeUrlRequest(BaseModel):
